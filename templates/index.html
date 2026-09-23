@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KRG IT Help Desk - Portal</title>
+    <meta name="description" content="KRG Technologies internal IT Help Desk ticketing portal for managing employee IT support requests, engineer assignments, and issue resolution.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js for beautiful charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+    <!-- App Toast Notifications -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Login Container -->
+    <section id="login-section" class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="logo-wrapper">
+                    <i class="fa-solid fa-microchip logo-icon"></i>
+                </div>
+                <h1>KRG Help Desk Portal</h1>
+                <p>Enterprise IT Service Management System</p>
+            </div>
+            
+            <div class="role-selector">
+                <button type="button" class="role-tab active" data-role="employee" onclick="selectRole('employee')" id="role-btn-employee">
+                    <i class="fa-solid fa-user-tie"></i> Employee
+                </button>
+                <button type="button" class="role-tab" data-role="admin" onclick="selectRole('admin')" id="role-btn-admin">
+                    <i class="fa-solid fa-user-shield"></i> IT Admin
+                </button>
+                <button type="button" class="role-tab" data-role="engineer" onclick="selectRole('engineer')" id="role-btn-engineer">
+                    <i class="fa-solid fa-laptop-code"></i> Engineer
+                </button>
+            </div>
+
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="login-email">Email Address</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-envelope input-icon"></i>
+                        <input type="email" id="login-email" required placeholder="name@krgtech.com">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-lock input-icon"></i>
+                        <input type="password" id="login-password" required placeholder="••••••••">
+                    </div>
+                </div>
+
+                <div class="demo-accounts-info" id="demo-account-tip">
+                    <span class="tip-badge">DEMO</span>
+                    <span id="demo-details-text">Click "Login" to access with default credentials: <strong>shirish@krgtech.com / password123</strong></span>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block" id="login-submit-btn">
+                    <span>Sign In</span>
+                    <i class="fa-solid fa-right-to-bracket"></i>
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <!-- Main Dashboard Container (Hidden on load, shown after login) -->
+    <main id="app-container" class="app-layout" style="display: none;">
+        <!-- Sidebar Navigation -->
+        <aside class="app-sidebar">
+            <div class="sidebar-header">
+                <i class="fa-solid fa-microchip brand-icon"></i>
+                <span class="brand-name">KRG Tech</span>
+            </div>
+            
+            <!-- User Profile Card in Sidebar -->
+            <div class="user-profile-badge">
+                <div class="profile-avatar" id="user-avatar">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+                <div class="profile-details">
+                    <h3 id="user-name">Loading...</h3>
+                    <p id="user-role-dept">Employee • IT</p>
+                </div>
+            </div>
+
+            <!-- Nav Links -->
+            <nav class="sidebar-nav">
+                <ul>
+                    <li>
+                        <a href="#" class="nav-link active" onclick="switchTab('dashboard')" id="nav-dashboard">
+                            <i class="fa-solid fa-chart-pie"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-link" onclick="switchTab('tickets')" id="nav-tickets">
+                            <i class="fa-solid fa-ticket"></i>
+                            <span>My Tickets</span>
+                        </a>
+                    </li>
+                    <li id="li-raise-ticket">
+                        <a href="#" class="nav-link" onclick="switchTab('raise-ticket')" id="nav-raise-ticket">
+                            <i class="fa-solid fa-plus-circle"></i>
+                            <span>Raise Ticket</span>
+                        </a>
+                    </li>
+                    <li id="li-admin-panel" style="display: none;">
+                        <a href="#" class="nav-link" onclick="switchTab('admin-panel')" id="nav-admin-panel">
+                            <i class="fa-solid fa-users-gear"></i>
+                            <span>Staff Management</span>
+                        </a>
+                    </li>
+                    <li id="li-reports" style="display: none;">
+                        <a href="#" class="nav-link" onclick="switchTab('reports')" id="nav-reports">
+                            <i class="fa-solid fa-chart-line"></i>
+                            <span>Reports & Analytics</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button onclick="handleLogout()" class="btn-logout" id="btn-logout-sidebar">
+                    <i class="fa-solid fa-power-off"></i>
+                    <span>Log Out</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Header Bar -->
+            <header class="content-header">
+                <div class="header-left">
+                    <h2 id="current-section-title">Dashboard</h2>
+                </div>
+                <div class="header-right">
+                    <span id="header-date" class="header-date">Monday, July 13, 2026</span>
+                    <button class="notification-bell" id="notification-bell">
+                        <i class="fa-solid fa-bell"></i>
+                        <span class="badge" id="notification-badge" style="display: none;">0</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Content Panels -->
+            <div class="content-body">
+                
+                <!-- Panel 1: Dashboard Home -->
+                <section id="panel-dashboard" class="content-panel active">
+                    <!-- Stats Grid -->
+                    <div class="stats-grid">
+                        <div class="stat-card blue">
+                            <div class="stat-icon">
+                                <i class="fa-solid fa-list-check"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-label">Total Tickets</span>
+                                <h3 class="stat-value" id="stat-total">0</h3>
+                            </div>
+                        </div>
+                        <div class="stat-card orange">
+                            <div class="stat-icon">
+                                <i class="fa-solid fa-spinner"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-label">Pending / Active</span>
+                                <h3 class="stat-value" id="stat-pending">0</h3>
+                            </div>
+                        </div>
+                        <div class="stat-card green">
+                            <div class="stat-icon">
+                                <i class="fa-solid fa-circle-check"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-label">Resolved / Closed</span>
+                                <h3 class="stat-value" id="stat-resolved">0</h3>
+                            </div>
+                        </div>
+                        <div class="stat-card red">
+                            <div class="stat-icon">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-label">High Priority</span>
+                                <h3 class="stat-value" id="stat-high">0</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dashboard Sub-grid -->
+                    <div class="dashboard-grid">
+                        <!-- Recent Tickets Card -->
+                        <div class="dashboard-card card-large">
+                            <div class="card-header">
+                                <h3>Recent Support Tickets</h3>
+                                <button class="btn btn-text" onclick="switchTab('tickets')">View All</button>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Problem</th>
+                                                <th>Priority</th>
+                                                <th>Status</th>
+                                                <th>Created At</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="recent-tickets-tbody">
+                                            <tr>
+                                                <td colspan="6" class="text-center text-muted">No tickets found</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Info/Guide Card -->
+                        <div class="dashboard-card card-small">
+                            <div class="card-header">
+                                <h3>KRG Quick Operations</h3>
+                            </div>
+                            <div class="card-body quick-actions-body">
+                                <div id="employee-actions" class="quick-actions">
+                                    <p class="quick-intro">Need immediate IT assistance? Raise a ticket and one of our network or hardware engineers will be assigned to help you.</p>
+                                    <button class="btn btn-primary btn-block" onclick="switchTab('raise-ticket')">
+                                        <i class="fa-solid fa-plus"></i> Raise A Support Request
+                                    </button>
+                                </div>
+                                <div id="admin-actions" class="quick-actions" style="display: none;">
+                                    <p class="quick-intro">As an administrator, you can view the full ticket queue, allocate engineers to open issues, or review the support workload.</p>
+                                    <div class="action-grid">
+                                        <button class="btn btn-secondary btn-sm" onclick="switchTab('admin-panel')">
+                                            <i class="fa-solid fa-users"></i> Staff Directory
+                                        </button>
+                                        <button class="btn btn-accent btn-sm" onclick="switchTab('reports')">
+                                            <i class="fa-solid fa-chart-column"></i> Analytics Dashboard
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="engineer-actions" class="quick-actions" style="display: none;">
+                                    <p class="quick-intro">Welcome to the support queue. Please review your active assigned tickets, communicate progress, and mark issues resolved.</p>
+                                    <button class="btn btn-primary btn-block" onclick="switchTab('tickets')">
+                                        <i class="fa-solid fa-ticket"></i> View Assigned Tickets
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Panel 2: Tickets List -->
+                <section id="panel-tickets" class="content-panel">
+                    <div class="toolbar">
+                        <div class="search-box">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="ticket-search" placeholder="Search ticket ID or problem..." onkeyup="filterTickets()">
+                        </div>
+                        <div class="filter-controls">
+                            <div class="select-wrapper">
+                                <i class="fa-solid fa-filter select-icon"></i>
+                                <select id="filter-status" onchange="filterTickets()">
+                                    <option value="all">All Statuses</option>
+                                    <option value="Open">Open</option>
+                                    <option value="Assigned">Assigned</option>
+                                    <option value="In Progress">In Progress</option>
+                                    <option value="Resolved">Resolved</option>
+                                    <option value="Closed">Closed</option>
+                                </select>
+                            </div>
+                            <div class="select-wrapper">
+                                <i class="fa-solid fa-arrow-down-up-wide select-icon"></i>
+                                <select id="filter-priority" onchange="filterTickets()">
+                                    <option value="all">All Priorities</option>
+                                    <option value="High">High</option>
+                                    <option value="Medium">Medium</option>
+                                    <option value="Low">Low</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-card">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="data-table" id="tickets-table">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Raised By</th>
+                                            <th>Department</th>
+                                            <th>Problem</th>
+                                            <th>Priority</th>
+                                            <th>Assigned Engineer</th>
+                                            <th>Status</th>
+                                            <th>Last Updated</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tickets-list-tbody">
+                                        <tr>
+                                            <td colspan="9" class="text-center text-muted">Loading tickets...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Panel 3: Ticket Detail View -->
+                <section id="panel-ticket-detail" class="content-panel">
+                    <div class="back-nav">
+                        <button onclick="goBackToTickets()" class="btn btn-outline btn-sm">
+                            <i class="fa-solid fa-arrow-left"></i> Back to Ticket List
+                        </button>
+                    </div>
+
+                    <div class="ticket-detail-grid">
+                        <!-- Detail Information Card -->
+                        <div class="detail-card main-detail">
+                            <div class="detail-header-block">
+                                <div class="ticket-id-tag">TICKET #<span id="detail-ticket-id">0000</span></div>
+                                <h2 id="detail-problem" class="ticket-detail-title">Ticket Problem Title</h2>
+                                <div class="ticket-metadata-row">
+                                    <span><i class="fa-solid fa-user"></i> Raised By: <strong id="detail-employee">Employee Name</strong> (<span id="detail-dept">Dept</span>)</span>
+                                    <span><i class="fa-solid fa-calendar-days"></i> Created: <strong id="detail-created">Date</strong></span>
+                                </div>
+                            </div>
+
+                            <div class="detail-section">
+                                <h3>Description</h3>
+                                <div class="description-box" id="detail-description">
+                                    Ticket description goes here...
+                                </div>
+                            </div>
+
+                            <div class="detail-section">
+                                <h3>Discussion & Updates</h3>
+                                <div class="comments-feed" id="comments-feed">
+                                    <!-- Comments populated via JS -->
+                                </div>
+
+                                <form id="add-comment-form" onsubmit="submitComment(event)" class="comment-form-block">
+                                    <div class="comment-input-area">
+                                        <textarea id="new-comment-content" required placeholder="Type a note or reply here..."></textarea>
+                                    </div>
+                                    <div class="comment-submit-area">
+                                        <p class="text-muted text-sm"><i class="fa-solid fa-info-circle"></i> Replying will update both employee and assigned support staff.</p>
+                                        <button type="submit" class="btn btn-primary" id="btn-submit-comment">
+                                            <span>Post Reply</span>
+                                            <i class="fa-solid fa-paper-plane"></i>
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Controls & Management Sidebar -->
+                        <div class="detail-card sidebar-control">
+                            <div class="control-section">
+                                <h3>Ticket Status</h3>
+                                <div class="status-badge-lg" id="detail-status-badge">Open</div>
+                                
+                                <!-- Engineer Actions (Status transitions) -->
+                                <div class="status-action-buttons" id="engineer-status-actions" style="display: none;">
+                                    <button class="btn btn-accent btn-block" onclick="updateTicketStatus('In Progress')" id="btn-status-in-progress">
+                                        <i class="fa-solid fa-spinner fa-spin-hover"></i> Mark In Progress
+                                    </button>
+                                    <button class="btn btn-success btn-block" onclick="updateTicketStatus('Resolved')" id="btn-status-resolved">
+                                        <i class="fa-solid fa-check-circle"></i> Mark Resolved
+                                    </button>
+                                </div>
+
+                                <!-- Employee Actions (Close ticket) -->
+                                <div class="status-action-buttons" id="employee-status-actions" style="display: none;">
+                                    <button class="btn btn-secondary btn-block" onclick="updateTicketStatus('Closed')" id="btn-status-close">
+                                        <i class="fa-solid fa-box-archive"></i> Close Ticket (Issue Solved)
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Admin Controls -->
+                            <div class="control-section" id="admin-controls-section" style="display: none;">
+                                <h3>IT Admin Controls</h3>
+                                
+                                <div class="form-group">
+                                    <label for="assign-engineer-select">Assign Support Engineer</label>
+                                    <div class="select-wrapper">
+                                        <i class="fa-solid fa-headset select-icon"></i>
+                                        <select id="assign-engineer-select" onchange="assignEngineer()">
+                                            <option value="">-- Select Engineer --</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="change-priority-select">Modify Priority</label>
+                                    <div class="select-wrapper">
+                                        <i class="fa-solid fa-triangle-exclamation select-icon"></i>
+                                        <select id="change-priority-select" onchange="changePriority()">
+                                            <option value="Low">Low Priority</option>
+                                            <option value="Medium">Medium Priority</option>
+                                            <option value="High">High Priority</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Ticket Details info list -->
+                            <div class="control-section info-list">
+                                <h3>Assignment Information</h3>
+                                <div class="info-row">
+                                    <span class="info-label">Assigned Engineer:</span>
+                                    <span class="info-val" id="detail-assigned-engineer">Not Assigned</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Ticket Priority:</span>
+                                    <span class="info-val" id="detail-priority-tag">Medium</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Last Updated:</span>
+                                    <span class="info-val" id="detail-updated-at">Today</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Panel 4: Raise Ticket Form -->
+                <section id="panel-raise-ticket" class="content-panel">
+                    <div class="form-container-card">
+                        <div class="form-card-header">
+                            <h2>Submit A Support Ticket</h2>
+                            <p>Please describe your issue in detail. An IT Support Administrator will review it and assign a Support Engineer.</p>
+                        </div>
+                        <form id="raise-ticket-form" onsubmit="handleRaiseTicket(event)" class="premium-form">
+                            <div class="form-group">
+                                <label for="ticket-problem">Problem Title / Issue Summary</label>
+                                <div class="input-wrapper">
+                                    <i class="fa-solid fa-heading input-icon"></i>
+                                    <input type="text" id="ticket-problem" required placeholder="e.g. Laptop not connecting to office Wi-Fi">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="ticket-priority">Priority Level</label>
+                                <div class="select-wrapper">
+                                    <i class="fa-solid fa-triangle-exclamation select-icon"></i>
+                                    <select id="ticket-priority" required>
+                                        <option value="Low">Low - General query or non-blocking issue</option>
+                                        <option value="Medium" selected>Medium - Minor blocking or inconvenience</option>
+                                        <option value="High">High - Major blocker (VPN, booting issues, etc.)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="ticket-description">Detailed Description</label>
+                                <textarea id="ticket-description" required rows="6" placeholder="Provide as much context as possible. Mention any error messages, specific hardware models, and when the issue started."></textarea>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="reset" class="btn btn-outline" onclick="switchTab('dashboard')">Cancel</button>
+                                <button type="submit" class="btn btn-primary" id="btn-raise-ticket-submit">
+                                    <span>Submit Request</span>
+                                    <i class="fa-solid fa-paper-plane"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </section>
+
+                <!-- Panel 5: Admin Panel (Staff Directory) -->
+                <section id="panel-admin-panel" class="content-panel">
+                    <div class="tabs-subnav">
+                        <button class="tab-subnav-btn active" id="subtab-btn-employees" onclick="switchAdminSubtab('employees')">
+                            <i class="fa-solid fa-users"></i> Employees
+                        </button>
+                        <button class="tab-subnav-btn" id="subtab-btn-engineers" onclick="switchAdminSubtab('engineers')">
+                            <i class="fa-solid fa-headset"></i> Support Engineers
+                        </button>
+                    </div>
+
+                    <!-- Subpanel: Employees -->
+                    <div id="admin-subpanel-employees" class="admin-subpanel active">
+                        <div class="subpanel-header">
+                            <h3>Manage Office Employees</h3>
+                            <button class="btn btn-primary btn-sm" onclick="openAddUserModal('employee')">
+                                <i class="fa-solid fa-user-plus"></i> Add Employee
+                            </button>
+                        </div>
+                        <div class="dashboard-card">
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Name</th>
+                                            <th>Email Address</th>
+                                            <th>Department</th>
+                                            <th>Role</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="admin-employees-tbody">
+                                        <tr>
+                                            <td colspan="6" class="text-center text-muted">Loading employee data...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Subpanel: Engineers -->
+                    <div id="admin-subpanel-engineers" class="admin-subpanel">
+                        <div class="subpanel-header">
+                            <h3>Manage Support Engineers</h3>
+                            <button class="btn btn-primary btn-sm" onclick="openAddUserModal('engineer')">
+                                <i class="fa-solid fa-user-plus"></i> Add Engineer
+                            </button>
+                        </div>
+                        <div class="dashboard-card">
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Name</th>
+                                            <th>Email Address</th>
+                                            <th>Specialty/Department</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="admin-engineers-tbody">
+                                        <tr>
+                                            <td colspan="5" class="text-center text-muted">Loading engineer data...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Panel 6: Reports & Analytics -->
+                <section id="panel-reports" class="content-panel">
+                    <!-- Analytics Grid -->
+                    <div class="analytics-charts-grid">
+                        <div class="chart-card">
+                            <h3>Ticket Status Breakdown</h3>
+                            <div class="chart-container">
+                                <canvas id="chart-status"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <h3>Tickets by Priority</h3>
+                            <div class="chart-container">
+                                <canvas id="chart-priority"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <h3>Tickets by Department</h3>
+                            <div class="chart-container">
+                                <canvas id="chart-dept"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <h3>Support Workload (Active Tickets)</h3>
+                            <div class="chart-container">
+                                <canvas id="chart-workload"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Trend Chart (Spans full width) -->
+                    <div class="dashboard-card report-trend-card">
+                        <div class="card-header">
+                            <h3>Ticket Creation Trend (Last 7 Days)</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container-large">
+                                <canvas id="chart-trend"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Add User Modal -->
+    <div id="add-user-modal" class="modal-backdrop" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modal-title">Add New Employee</h3>
+                <button class="modal-close" onclick="closeAddUserModal()">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <form id="add-user-form" onsubmit="submitAddUserForm(event)">
+                <input type="hidden" id="modal-user-type" value="employee">
+                
+                <div class="form-group">
+                    <label for="modal-user-name">Full Name</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-user input-icon"></i>
+                        <input type="text" id="modal-user-name" required placeholder="e.g. John Doe">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="modal-user-email">Email Address</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-envelope input-icon"></i>
+                        <input type="email" id="modal-user-email" required placeholder="name@krgtech.com">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="modal-user-dept">Department / Specialty</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-building input-icon"></i>
+                        <input type="text" id="modal-user-dept" required placeholder="e.g. Development, HR, Software Support">
+                    </div>
+                </div>
+
+                <div class="form-group" id="modal-role-group">
+                    <label for="modal-user-role">Role</label>
+                    <div class="select-wrapper">
+                        <i class="fa-solid fa-user-shield select-icon"></i>
+                        <select id="modal-user-role">
+                            <option value="employee" selected>General Employee</option>
+                            <option value="admin">IT Administrator</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="modal-user-password">Password</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-lock input-icon"></i>
+                        <input type="password" id="modal-user-password" required placeholder="Min 6 characters">
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeAddUserModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="btn-modal-submit">Add User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Custom JS -->
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
